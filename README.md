@@ -1,29 +1,34 @@
-## Micronaut 4.7.4 Documentation
+# Bug Report: Incorrect HTTP Status Recorded in Micronaut Micrometer Metrics
 
-- [User Guide](https://docs.micronaut.io/4.7.4/guide/index.html)
-- [API Reference](https://docs.micronaut.io/4.7.4/api/index.html)
-- [Configuration Reference](https://docs.micronaut.io/4.7.4/guide/configurationreference.html)
-- [Micronaut Guides](https://guides.micronaut.io/index.html)
----
+## Summary
+When running a Micronaut server with a custom event handler that maps specific exceptions to HTTP statuses other than 500, the metrics incorrectly record the status as 500. This issue arises when using versions 4.7.x and above, whereas the expected behavior was observed in version 4.6.x.
 
-- [Micronaut Maven Plugin documentation](https://micronaut-projects.github.io/micronaut-maven-plugin/latest/)
-## Feature micronaut-aot documentation
+## Steps to Reproduce
+1. **Set Up a Custom Event Handler**: Implement a custom event handler to map the exception `DemoException` to HTTP status 400 (Bad Request).
 
-- [Micronaut AOT documentation](https://micronaut-projects.github.io/micronaut-aot/latest/guide/)
+   Example implementation see `CustomExceptionHandler` class.
 
+2. **Trigger the Exception**: Call a specific HTTP endpoint designed to trigger the `DemoException`. For instance, perform a GET request to `/api/error`.
 
-## Feature maven-enforcer-plugin documentation
+   Example request:
+   ```
+   GET /api/error
+   ```
 
-- [https://maven.apache.org/enforcer/maven-enforcer-plugin/](https://maven.apache.org/enforcer/maven-enforcer-plugin/)
+3. **Observe Metrics**: Check the recorded metrics for `http_server_requests_seconds_count`.
 
+## Expected Behavior
+Upon invoking the endpoint that triggers the `DemoException`, the expected metric should be:
+```
+http_server_requests_seconds_count{exception="none",method="GET",status="400",uri="/api/error"} 1
+```
 
-## Feature management documentation
+## Actual Behavior
+Instead of recording the expected status, the metric reflects:
+```
+http_server_requests_seconds_count{exception="DemoException",method="GET",status="500",uri="/api/error"} 1
+```
 
-- [Micronaut Management documentation](https://docs.micronaut.io/latest/guide/index.html#management)
-
-
-## Feature serialization-jackson documentation
-
-- [Micronaut Serialization Jackson Core documentation](https://micronaut-projects.github.io/micronaut-serialization/latest/guide/)
-
-
+## Additional Information
+- **Previous Version**: This behavior was functioning correctly in Micronaut version 4.6.x.
+- **Current Version**: The issue began occurring with the release of Micronaut version 4.7.x and continues in subsequent versions.
